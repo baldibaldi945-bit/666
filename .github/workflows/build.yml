@@ -34,4 +34,15 @@ jobs:
       - name: Fetch native deps
         working-directory: AudioMerger
         run: |
-          sh
+          sh scripts/fetch-native-deps.sh
+          sh scripts/fetch-codecs.sh
+
+      - name: Build debug APK
+        working-directory: AudioMerger
+        run: gradle -p android --no-daemon assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AudioMerger-debug-apk
+          path: AudioMerger/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

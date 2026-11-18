@@ -19,5 +19,17 @@ jobs:
           export JAVA_HOME=$JAVA_HOME_17_X64
           sudo chown -R $USER $ANDROID_HOME
           SDKM=$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager
+          cat > pkgs.txt <<EOF
+          platform-tools
+          platforms;android-28
+          build-tools;28.0.3
+          cmake;3.10.2.4988404
+          ndk;20.0.5594570
+          EOF
           yes | $SDKM --licenses > /dev/null || true
-          $SDKM "pla
+          $SDKM --package_file=pkgs.txt
+
+      - name: Remove newer SDK packages
+        run: |
+          cd $ANDROID_HOME
+          find platforms -mindepth 1 -maxdepth 1 ! -name android-28 -exec rm -rf {} +

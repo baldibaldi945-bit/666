@@ -20,45 +20,4 @@ jobs:
           sudo chown -R $USER $ANDROID_HOME
           SDKM=$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager
           yes | $SDKM --licenses > /dev/null || true
-          $SDKM "platform-tools" "platforms;android-28" "build-tools;28.0.3" "cmake;3.10.2.4988404" "ndk;20.0.5594570"
-          ls $ANDROID_HOME
-          ls $ANDROID_HOME/ndk
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '8'
-
-      - uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '4.6'
-
-      - name: Fetch native deps
-        working-directory: AudioMerger
-        run: |
-          sh scripts/fetch-native-deps.sh
-          sh scripts/fetch-codecs.sh
-
-      - name: Write local.properties
-        working-directory: AudioMerger/android
-        run: |
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
-          echo "ndk.dir=$ANDROID_HOME/ndk/20.0.5594570" >> local.properties
-          cat local.properties
-
-      - name: Build debug APK
-        working-directory: AudioMerger
-        run: |
-          gradle -p android --no-daemon --stacktrace assembleDebug > build.log 2>&1 || {
-            echo "=== CAUSED BY ==="
-            grep -n "Caused by" build.log | head -20
-            echo "=== ERRORS ==="
-            grep -n -i "error\|exception\|not found\|failed" build.log | grep -v "^[0-9]*:\s*at " | head -30
-            exit 1
-          }
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: AudioMerger-debug-apk
-          path: AudioMerger/android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          $SDKM "pla

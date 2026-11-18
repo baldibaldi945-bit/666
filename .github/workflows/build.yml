@@ -33,3 +33,27 @@ jobs:
         run: |
           cd $ANDROID_HOME
           find platforms -mindepth 1 -maxdepth 1 ! -name android-28 -exec rm -rf {} +
+      - name: Write local.properties
+        working-directory: AudioMerger/android
+        run: |
+          cat > local.properties <<EOF
+          sdk.dir=$ANDROID_HOME
+          ndk.dir=$ANDROID_HOME/ndk/20.0.5594570
+          EOF
+
+      - name: Build debug APK
+        working-directory: AudioMerger
+        run: |
+          gradle -p android --no-daemon --stacktrace assembleDebug > build.log 2>&1 || {
+            echo === CAUSED BY ===
+            grep -n Caused build.log | head -20
+            echo === ERRORS ===
+            grep -n -i -e error -e exception -e failed build.log | head -30
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AudioMerger-debug-apk
+          path: AudioMerger/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

@@ -33,6 +33,28 @@ jobs:
         run: |
           cd $ANDROID_HOME
           find platforms -mindepth 1 -maxdepth 1 ! -name android-28 -exec rm -rf {} +
+          find build-tools -mindepth 1 -maxdepth 1 ! -name 28.0.3 -exec rm -rf {} +
+          find ndk -mindepth 1 -maxdepth 1 ! -name 20.0.5594570 -exec rm -rf {} +
+          find cmake -mindepth 1 -maxdepth 1 ! -name 3.10.2.4988404 -exec rm -rf {} +
+          rm -rf ndk-bundle sources add-ons extras
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 8
+
+      - name: Get Gradle 4.6
+        run: |
+          curl -sSL -o g.zip https://services.gradle.org/distributions/gradle-4.6-bin.zip
+          unzip -q g.zip -d $HOME/g
+          $HOME/g/gradle-4.6/bin/gradle --version
+
+      - name: Fetch native deps
+        working-directory: AudioMerger
+        run: |
+          sh scripts/fetch-native-deps.sh
+          sh scripts/fetch-codecs.sh
+
       - name: Write local.properties
         working-directory: AudioMerger/android
         run: |
@@ -44,7 +66,7 @@ jobs:
       - name: Build debug APK
         working-directory: AudioMerger
         run: |
-          gradle -p android --no-daemon --stacktrace assembleDebug > build.log 2>&1 || {
+          $HOME/g/gradle-4.6/bin/gradle -p android --no-daemon --stacktrace assembleDebug > build.log 2>&1 || {
             echo === CAUSED BY ===
             grep -n Caused build.log | head -20
             echo === ERRORS ===

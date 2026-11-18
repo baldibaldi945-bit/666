@@ -11,11 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Unzip project
-        run: unzip -q AudioMerger.zip
-
-      - name: Exclude unneeded androidx libs
+      - name: Prepare project
         run: |
+          unzip -q AudioMerger.zip
           cat >> AudioMerger/android/app/build.gradle <<EOF
           configurations.all {
             exclude group: 'androidx.appcompat'
@@ -25,9 +23,54 @@ jobs:
             exclude group: 'androidx.lifecycle'
           }
           EOF
+          cat > AudioMerger/android/local.properties <<EOF
+          sdk.dir=$ANDROID_HOME
+          ndk.dir=$ANDROID_HOME/ndk/20.0.5594570
+          EOF
 
       - name: Install SDK packages
         run: |
           export JAVA_HOME=$JAVA_HOME_17_X64
           sudo chown -R $USER $ANDROID_HOME
-          SDKM=$ANDROID_HOME/cmdline-tools/latest/bin/sd
+          SDKM=$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager
+          cat > pkgs.txt <<EOF
+          platform-tools
+          platforms;android-28
+          build-tools;28.0.3
+          cmake;3.10.2.4988404
+          ndk;20.0.5594570
+          EOF
+          yes | $SDKM --licenses > /dev/null || true
+          $SDKM --package_file=pkgs.txt
+          cd $ANDROID_HOME
+          find platforms -mindepth 1 -maxdepth 1 ! -name android-28 -exec rm -rf {} +
+          find build-tools -mindepth 1 -maxdepth 1 ! -name 28.0.3 -exec rm -rf {} +
+          find ndk -mindepth 1 -maxdepth 1 ! -name 20.0.5594570 -exec rm -rf {} +
+          find cmake -mindepth 1 -maxdepth 1 ! -name 3.10.2.4988404 -exec rm -rf {} +
+          rm -rf ndk-bundle sources add-ons extras
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 8
+
+      - name: Build debug APK
+        working-directory: AudioMerger
+        run: |
+          curl -sSL -o $HOME/g.zip https://services.gradle.org/distributions/gradle-4.6-bin.zip
+          unzip -q $HOME/g.zip -d $HOME/g
+          sh scripts/fetch-native-deps.sh
+          sh scripts/fetch-codecs.sh
+          $HOME/g/gradle-4.6/bin/gradle -p android --no-daemon --stacktrace assembleDebug > build.log 2>&1 || {
+            echo === CAUSED BY ===
+            grep -n Caused build.log | head -20
+            echo === ERRORS ===
+            grep -n -i -e error -e exception -e failed build.log | head -30
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AudioMerger-debug-apk
+          path: AudioMerger/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

@@ -37,10 +37,10 @@ unzip -q $HOME/g.zip -d $HOME/g
 sh scripts/fetch-native-deps.sh
 sh scripts/fetch-codecs.sh
 $HOME/g/gradle-4.6/bin/gradle -p android --no-daemon --stacktrace assembleDebug > build.log 2>&1 || {
-  echo === JAVA ERRORS ===
-  grep -n -A2 '\.java:[0-9]*: error' build.log | head -40
-  echo === CAUSED BY ===
-  grep -n Caused build.log | head -10
+  echo === WHAT WENT WRONG ===
+  grep -n -A12 'What went wrong' build.log | head -40
+  echo === C++ ERRORS ===
+  grep -n -e 'error:' -e 'fatal error' -e 'undefined reference' -e 'ninja:' build.log | head -25
   exit 1
 }
 echo BUILD DONE
